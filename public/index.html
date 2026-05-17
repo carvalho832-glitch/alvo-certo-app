@@ -3,126 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Ofertas Inteligente</title>
+    <title>Gerador de Ofertas Rastreadas</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        body {
-            background-color: #f4f7f6;
-            color: #333;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 24px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #34495e;
-        }
-        input[type="url"], select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 16px;
-            outline: none;
-        }
-        input[type="url"]:focus, select:focus {
-            border-color: #27ae60;
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #219150;
-        }
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        .resultado {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e8f8f5;
-            border-left: 5px solid #1abc9c;
-            border-radius: 4px;
-            display: none;
-        }
-        .resultado p {
-            color: #16a085;
-            font-weight: 600;
-        }
-        .resultado input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border: 1px solid #1abc9c;
-            border-radius: 4px;
-            background: #fff;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        .dashboard {
-            margin-top: 30px;
-            border-top: 2px solid #eee;
-            padding-top: 20px;
-        }
-        .dashboard h2 {
-            font-size: 18px;
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        .oferta-item {
-            background: #fdfefe;
-            border: 1px solid #e5e8e8;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .oferta-item strong {
-            color: #2980b9;
-        }
-        .badge {
-            background: #3498db;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; color: #333; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 24px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #219653; }
+        .resultado { margin-top: 20px; padding: 15px; background-color: #e8f8f5; border: 1px solid #a3e4d7; border-radius: 4px; display: none; }
+        .resultado p { color: #117a65; font-weight: bold; }
+        .resultado input { margin-top: 10px; text-align: center; background: #fff; font-weight: bold; color: #27ae60; }
+        .historico { margin-top: 30px; }
+        .historico h2 { font-size: 18px; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 10px; }
+        .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 250px; overflow-y: auto; }
+        .item-link { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .item-link:last-child { border-bottom: none; }
+        .cliques { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -130,126 +30,114 @@
 <div class="container">
     <h1>🚀 Gerador de Ofertas</h1>
     
-    <form id="formOferta">
+    <form id="formGerador">
         <div class="form-group">
             <label for="urlOriginal">Link de Afiliado (Mercado Livre/Amazon):</label>
-            <input type="url" id="urlOriginal" placeholder="https://..." required>
+            <input type="text" id="urlOriginal" placeholder="https://..." required>
         </div>
         
         <div class="form-group">
             <label for="categoria">Categoria do Produto:</label>
-            <select id="categoria" required>
-                <option value="">Selecione...</option>
-                <option value="Móveis e Decoração">Móveis e Decoração</option>
-                <option value="Casa e Cozinha">Casa e Cozinha</option>
+            <select id="categoria">
+                <option value="Geral">Geral</option>
+                <option value="Eletrodomésticos">Eletrodomésticos</option>
                 <option value="Eletrônicos">Eletrônicos</option>
-                <option value="Brinquedos">Brinquedos</option>
-                <option value="Ferramentas">Ferramentas</option>
+                <option value="Moda">Moda</option>
+                <option value="Beleza">Beleza</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label for="preco">Faixa de Preço:</label>
-            <select id="preco" required>
-                <option value="">Selecione...</option>
-                <option value="Abaixo de R$ 50">Abaixo de R$ 50</option>
-                <option value="R$ 50 a R$ 100">R$ 50 a R$ 100</option>
-                <option value="R$ 100 a R$ 300">R$ 100 a R$ 300</option>
-                <option value="Acima de R$ 300">Acima de R$ 300</option>
-            </select>
+            <label for="precoAlvo">Preço Alvo (Opcional):</label>
+            <input type="text" id="precoAlvo" placeholder="Ex: R$ 99,90">
         </div>
-
+        
         <button type="submit" id="btnGerar">Gerar Link Rastreado</button>
     </form>
 
-    <div class="resultado" id="areaResultado">
-        <p>✅ Seu link está pronto para disparar nos grupos!</p>
-        <input type="text" id="linkGerado" readonly>
+    <div class="resultado" id="blocoResultado">
+        <p>🎉 Seu link está pronto para disparar nos grupos!</p>
+        <input type="text" id="linkCurtoGerado" readonly onclick="this.select()">
     </div>
 
-    <div class="dashboard">
+    <div class="historico">
         <h2>📊 Cliques em Tempo Real</h2>
-        <div id="listaOfertas">
-            <p style="color: #7f8c8d; margin-top: 10px;">Nenhuma oferta registrada ainda.</p>
+        <div class="lista-links" id="listaHistorico">
+            <p style="text-align: center; color: #7f8c8d;">Nenhuma oferta registrada ainda.</p>
         </div>
     </div>
 </div>
 
 <script>
-    // Envia os dados para o servidor Node.js real
-    document.getElementById('formOferta').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const btnGerar = document.getElementById('btnGerar');
-        btnGerar.textContent = 'Gerando Link...';
-        btnGerar.disabled = true;
+    const form = document.getElementById('formGerador');
+    const btnGerar = document.getElementById('btnGerar');
+    const blocoResultado = document.getElementById('blocoResultado');
+    const linkCurtoGerado = document.getElementById('linkCurtoGerado');
+    const listaHistorico = document.getElementById('listaHistorico');
 
-        const url_afiliado = document.getElementById('urlOriginal').value;
-        const categoria = document.getElementById('categoria').value;
-        const preco = document.getElementById('preco').value;
-
+    // Função para carregar a lista de links gerados direto do servidor
+    async function carregarHistorico() {
         try {
-            const resposta = await fetch('/gerar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url_afiliado, categoria, preco })
-            });
-
-            const dados = await resposta.json();
-            
-            // Monta o link final com o domínio correto onde o app estiver hospedado
-            const urlCompleta = window.location.origin + dados.link_rastreio;
-            document.getElementById('linkGerado').value = urlCompleta;
-            document.getElementById('areaResultado').style.display = 'block';
-            
-            // Restaura o formulário
-            btnGerar.textContent = 'Gerar Link Rastreado';
-            btnGerar.disabled = false;
-            document.getElementById('formOferta').reset();
-            
-            carregarPainel();
-        } catch (erro) {
-            alert('Erro ao gerar o link. Verifique a conexão do servidor.');
-            btnGerar.textContent = 'Gerar Link Rastreado';
-            btnGerar.disabled = false;
-        }
-    });
-
-    // Busca as estatísticas reais no servidor Node.js
-    async function carregarPainel() {
-        try {
-            const resposta = await fetch('/painel-dados');
-            const ofertas = await resposta.json();
-            
-            const lista = document.getElementById('listaOfertas');
-            lista.innerHTML = ''; 
-
-            const chaves = Object.keys(ofertas);
-            
-            if(chaves.length === 0) {
-                lista.innerHTML = '<p style="color: #7f8c8d; margin-top: 10px;">Nenhuma oferta registrada ainda.</p>';
-                return;
+            const resposta = await fetch('/api/links');
+            if (resposta.ok) {
+                const links = await resposta.json();
+                if (links.length > 0) {
+                    listaHistorico.innerHTML = links.map(l => `
+                        <div class="item-link">
+                            <div>
+                                <strong>[${l.categoria}]</strong> 
+                                <a href="${l.urlOriginal}" target="_blank" style="color: #2980b9; text-decoration: none;">Link Original</a>
+                            </div>
+                            <span class="cliques">${l.cliques || 0} cliques</span>
+                        </div>
+                    `).join('');
+                }
             }
-
-            chaves.forEach(id => {
-                const item = ofertas[id];
-                const div = document.createElement('div');
-                div.className = 'oferta-item';
-                div.innerHTML = `
-                    <div>
-                        <strong>ID: ${id}</strong> <br>
-                        <small>${item.categoria} | ${item.preco}</small>
-                    </div>
-                    <div class="badge">${item.cliques} cliques</div>
-                `;
-                lista.appendChild(div);
-            });
-        } catch (erro) {
-            console.error('Erro ao carregar o painel', erro);
+        } catch (error) {
+            console.error("Erro ao carregar histórico:", error);
         }
     }
 
-    carregarPainel();
+    // Carrega o histórico assim que abre a página
+    carregarHistorico();
+
+    // Evento de envio do formulário para gerar o link
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        btnGerar.innerText = "Gerando Link...";
+        btnGerar.disabled = true;
+
+        const urlOriginal = document.getElementById('urlOriginal').value;
+        const categoria = document.getElementById('categoria').value;
+        const precoAlvo = document.getElementById('precoAlvo').value;
+
+        try {
+            // 🔄 CORREÇÃO DA ROTA: Enviando exatamente para /api/encurtar
+            const resposta = await fetch('/api/encurtar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urlOriginal, categoria, precoAlvo })
+            });
+
+            const dados = await resposta.json();
+
+            if (resposta.ok && dados.linkCurto) {
+                linkCurtoGerado.value = dados.linkCurto;
+                blocoResultado.style.display = 'block';
+                form.reset();
+                carregarHistorico(); // Atualiza a tabela com o link novo
+            } else {
+                alert(dados.error || "Erro interno ao processar o link.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao gerar o link. Verifique a conexão do servidor.");
+        } finally {
+            btnGerar.innerText = "Gerar Link Rastreado";
+            btnGerar.disabled = false;
+        }
+    });
 </script>
 </body>
 </html>

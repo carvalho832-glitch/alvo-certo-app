@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Motor de encurtamento do TinyURL (Sem erros de sintaxe)
+// Motor estável do TinyURL
 function encurtarLinkLink(urlLonga) {
     return new Promise((resolve) => {
         const apiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlLonga)}`;
@@ -54,7 +54,7 @@ function encurtarLinkLink(urlLonga) {
     });
 }
 
-// ROTA 1: Salva o link com a nova Descrição do Produto
+// ROTA 1: Salva o link com a Descrição e guarda o Link Curto Gerado
 app.post('/api/encurtar', async (req, res) => {
     try {
         const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
@@ -70,9 +70,11 @@ app.post('/api/encurtar', async (req, res) => {
 
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
+        // Agora salvamos o linkCurto no banco para listar depois
         const novoLink = {
             idCurto,
             urlOriginal,
+            linkCurto: linkCurtoFinal, 
             descricao,
             precoAlvo,
             cliques: 0,
@@ -96,7 +98,7 @@ app.post('/api/encurtar', async (req, res) => {
     }
 });
 
-// ROTA 2: Redirecionar clique e computar acesso
+// ROTA 2: Redirecionar clique
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
@@ -125,7 +127,7 @@ app.get('/clique/:idCurto', async (req, res) => {
     }
 });
 
-// ROTA 3: Histórico unificado para a tabela da tela
+// ROTA 3: Histórico unificado
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];

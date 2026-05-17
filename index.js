@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const http = require('https'); 
 const { MongoClient } = require('mongodb');
 
 const app = express();
@@ -18,9 +17,9 @@ async function conectarBanco() {
         await client.connect();
         db = client.db('alvo_certo_dados');
         linksCollection = db.collection('links');
-        console.log("✅ Conectado ao MongoDB Atlas!");
+        console.log("✅ Conectado ao MongoDB Atlas com sucesso!");
     } catch (error) {
-        console.error("❌ Erro no MongoDB:", error);
+        console.error("❌ Erro de conexão no MongoDB:", error);
     }
 }
 conectarBanco();
@@ -28,24 +27,29 @@ conectarBanco();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Função para gerar o link curto usando a API do is.gd
-function encurtarLinkLink(urlLonga) {
-    return new Promise((resolve) => {
-        http.get(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLonga)}`, (res) => {
-            let data = '';
-            res.on('data', (chunk) => data += chunk);
-            res.on('end', () => {
-                if (res.statusCode === 200 && data.trim()) {
-                    resolve(data.trim());
-                } else {
-                    resolve(urlLonga);
-                }
-            });
-        }).on('error', () => resolve(urlLonga));
-    });
+// 🔄 NOVA FUNÇÃO DE ENCURTAMENTO: Revisada, usando HTTPS Nativo (Fetch) e User-Agent
+async function encurtarLinkLink(urlLonga) {
+    try {
+        const apiUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLonga)}`;
+        
+        const resposta = await fetch(apiUrl, {
+            headers: { 'User-Agent': 'AlvoCertoApp/1.0' }
+        });
+
+        if (resposta.ok) {
+            const texto = await resposta.text();
+            if (texto && texto.trim()) {
+                return texto.trim();
+            }
+        }
+        return urlLonga; // Se a API falhar, retorna o link do Render como plano de fundo
+    } catch (error) {
+        console.error("⚠️ Erro ao chamar API do is.gd, usando link padrão:", error);
+        return urlLonga;
+    }
 }
 
-// ROTA 1: Criar e encurtar o link (Corrigida para o formato padrão do Express)
+// ROTA 1: Criar e encurtar o link
 app.post('/api/encurtar', async (req, res) => {
     try {
         const { urlOriginal, categoria, precoAlvo } = req.body;
@@ -54,10 +58,10 @@ app.post('/api/encurtar', async (req, res) => {
             return res.status(400).json({ error: 'URL original é obrigatória' });
         }
 
-        const idCurto = crypto.randomBytes(3).toString('hex'); 
+        const idCurto = crypto.randomBytes(3).toString('hex'); // Código de 6 letras/números
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
-        console.log("Encurtando link no is.gd...");
+        // Chama o encurtador corrigido
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {
@@ -69,8 +73,12 @@ app.post('/api/encurtar', async (req, res) => {
             criadoEm: new Date()
         };
 
+        // Salva no banco de dados se ele estiver conectado
         if (linksCollection) {
             await linksCollection.insertOne(novoLink);
+        } else {
+            console.error("❌ Banco de dados não inicializado no momento do insert.");
+            return res.status(500).json({ error: 'Banco de dados inacessível' });
         }
 
         res.json({ linkCurto: linkCurtoFinal, idCurto });
@@ -98,11 +106,12 @@ app.get('/clique/:idCurto', async (req, res) => {
             return res.status(404).send('<h1>Link não encontrado.</h1>');
         }
     } catch (error) {
+        console.error("Erro no redirecionamento:", error);
         res.status(500).send('Erro ao redirecionar.');
     }
 });
 
-// ROTA 3: Buscar histórico
+// ROTA 3: Buscar histórico para a tabela
 app.get('/api/links', async (req, res) => {
     try {
         if (!linksCollection) return res.json([]);
@@ -114,5 +123,5 @@ app.get('/api/links', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor ativo na porta ${PORT}!`);
+    console.log(`🚀 Servidor ativo e revisado na porta ${PORT}!`);
 });

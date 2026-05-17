@@ -11,7 +11,7 @@
         h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 24px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
-        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         button:hover { background-color: #219653; }
         .resultado { margin-top: 20px; padding: 15px; background-color: #e8f8f5; border: 1px solid #a3e4d7; border-radius: 4px; display: none; }
@@ -19,10 +19,10 @@
         .resultado input { margin-top: 10px; text-align: center; background: #fff; font-weight: bold; color: #27ae60; }
         .historico { margin-top: 30px; }
         .historico h2 { font-size: 18px; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 10px; }
-        .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 250px; overflow-y: auto; }
-        .item-link { padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 300px; overflow-y: auto; }
+        .item-link { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
         .item-link:last-child { border-bottom: none; }
-        .cliques { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+        .cliques { background: #e74c3c; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -37,19 +37,13 @@
         </div>
         
         <div class="form-group">
-            <label for="categoria">Categoria do Produto:</label>
-            <select id="categoria">
-                <option value="Geral">Geral</option>
-                <option value="Eletrodomésticos">Eletrodomésticos</option>
-                <option value="Eletrônicos">Eletrônicos</option>
-                <option value="Moda">Moda</option>
-                <option value="Beleza">Beleza</option>
-            </select>
+            <label for="descricao">Descrição Curta / Nome do Produto:</label>
+            <input type="text" id="descricao" placeholder="Ex: iPhone 13 Black, Fritadeira Mondial" required>
         </div>
 
         <div class="form-group">
-            <label for="precoAlvo">Preço Alvo (Opcional):</label>
-            <input type="text" id="precoAlvo" placeholder="Ex: R$ 99,90">
+            <label for="precoAlvo">Preço Opcional (Ex: R$ 99,90):</label>
+            <input type="text" id="precoAlvo" placeholder="Deixe em branco se não quiser pôr">
         </div>
         
         <button type="submit" id="btnGerar">Gerar Link Rastreado</button>
@@ -75,7 +69,6 @@
     const linkCurtoGerado = document.getElementById('linkCurtoGerado');
     const listaHistorico = document.getElementById('listaHistorico');
 
-    // Função para carregar a lista de links gerados direto do servidor
     async function carregarHistorico() {
         try {
             const resposta = await fetch('/api/links');
@@ -85,8 +78,9 @@
                     listaHistorico.innerHTML = links.map(l => `
                         <div class="item-link">
                             <div>
-                                <strong>[${l.categoria}]</strong> 
-                                <a href="${l.urlOriginal}" target="_blank" style="color: #2980b9; text-decoration: none;">Link Original</a>
+                                <span style="color: #2c3e50; font-weight: bold;">${l.descricao || l.categoria || 'Produto'}</span> 
+                                <br>
+                                <a href="${l.urlOriginal}" target="_blank" style="color: #2980b9; text-decoration: none; font-size: 11px;">Link Original 🔗</a>
                             </div>
                             <span class="cliques">${l.cliques || 0} cliques</span>
                         </div>
@@ -98,10 +92,8 @@
         }
     }
 
-    // Carrega o histórico assim que abre a página
     carregarHistorico();
 
-    // Evento de envio do formulário para gerar o link
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -109,15 +101,14 @@
         btnGerar.disabled = true;
 
         const urlOriginal = document.getElementById('urlOriginal').value;
-        const categoria = document.getElementById('categoria').value;
+        const descricao = document.getElementById('descricao').value;
         const precoAlvo = document.getElementById('precoAlvo').value;
 
         try {
-            // 🔄 CORREÇÃO DA ROTA: Enviando exatamente para /api/encurtar
             const resposta = await fetch('/api/encurtar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ urlOriginal, categoria, precoAlvo })
+                body: JSON.stringify({ urlOriginal, descricao, precoAlvo })
             });
 
             const dados = await resposta.json();
@@ -126,7 +117,7 @@
                 linkCurtoGerado.value = dados.linkCurto;
                 blocoResultado.style.display = 'block';
                 form.reset();
-                carregarHistorico(); // Atualiza a tabela com o link novo
+                carregarHistorico();
             } else {
                 alert(dados.error || "Erro interno ao processar o link.");
             }

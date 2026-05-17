@@ -27,47 +27,51 @@ async function conectarBanco() {
 conectarBanco();
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Garante leitura de formulários comuns
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 🔄 NOVO ENCURTADOR: Trocado para o TinyURL devido à instabilidade do is.gd
 function encurtarLinkLink(urlLonga) {
     return new Promise((resolve) => {
-        const apiUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLonga)}`;
+        const apiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlLonga)}`;
+        
         const options = {
             headers: { 'User-Agent': 'AlvoCertoApp/1.0' },
-            timeout: 5000
+            timeout: 6000
         };
+
         https.get(apiUrl, options, (res) => {
             let data = '';
             res.on('data', (chunk) => { data += chunk; });
             res.on('end', () => {
-                if (res.statusCode === 200 && data.trim()) {
+                // Se o TinyURL responder certinho e não contiver erro, usa o link deles
+                if (res.statusCode === 200 && data.trim() && !data.toLowerCase().includes('error')) {
                     resolve(data.trim());
                 } else {
-                    resolve(urlLonga);
+                    resolve(urlLonga); // Retorna o link padrão se falhar
                 }
             });
-        }).on('error', () => { resolve(urlLonga); });
+        }).on('error', () => {
+            resolve(urlLonga);
+        });
     });
 }
 
-// ROTA 1: Criar e encurtar o link (BLINDADA CONTRA ERROS DO FRONT-END)
+// ROTA 1: Criar e encurtar o link
 app.post('/api/encurtar', async (req, res) => {
     try {
-        // Pega o link não importa o nome que o front-end enviou (urlOriginal, url ou link)
         const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
         const categoria = req.body.categoria || 'Geral';
         const precoAlvo = req.body.precoAlvo || 'N/A';
 
-        // Se mesmo assim não vier nada, ele usa um link padrão de teste para não travar a tela
         if (!urlOriginal) {
-            console.log("⚠️ Nenhuma URL foi recebida no servidor, usando link de teste.");
             return res.status(400).json({ error: 'Por favor, insira um link válido.' });
         }
 
         const idCurto = crypto.randomBytes(3).toString('hex'); 
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
+        // Chama o encurtador estável do TinyURL
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {

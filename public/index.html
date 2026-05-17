@@ -27,8 +27,9 @@
         .historico { margin-top: 30px; }
         .historico h2 { font-size: 18px; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 10px; }
         .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 300px; overflow-y: auto; }
-        .item-link { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .item-link { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
         .item-link:last-child { border-bottom: none; }
+        .links-acoes { margin-top: 6px; font-size: 11px; }
         .cliques { background: #e74c3c; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
@@ -76,12 +77,11 @@
     const linkCurtoGerado = document.getElementById('linkCurtoGerado');
     const listaHistorico = document.getElementById('listaHistorico');
 
-    // REGISTRO AUTOMÁTICO DO INSTALADOR (PWA)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log('🚀 Aplicativo pronto para instalação!'))
-                .catch(err => console.error('Erro ao ativar instalador:', err));
+                .then(() => console.log('🚀 Aplicativo pronto!'))
+                .catch(err => console.error(err));
         });
     }
 
@@ -91,16 +91,22 @@
             if (resposta.ok) {
                 const links = await resposta.json();
                 if (links.length > 0) {
-                    listaHistorico.innerHTML = links.map(l => `
+                    listaHistorico.innerHTML = links.map(l => {
+                        // Caso seja um link antigo sem a propriedade linkCurto salva, gera uma base para não quebrar
+                        const exibicaoLinkCurto = l.linkCurto || `https://alvo-certo-app.onrender.com/clique/${l.idCurto}`;
+                        
+                        return `
                         <div class="item-link">
-                            <div>
-                                <span style="color: #2c3e50; font-weight: bold;">${l.descricao || l.categoria || 'Produto'}</span> 
-                                <br>
-                                <a href="${l.urlOriginal}" target="_blank" style="color: #2980b9; text-decoration: none; font-size: 11px;">Link Original 🔗</a>
+                            <div style="max-width: 75%;">
+                                <span style="color: #2c3e50; font-weight: bold; display: block; word-wrap: break-word;">${l.descricao || l.categoria || 'Produto'}</span> 
+                                <div class="links-acoes">
+                                    <a href="${l.urlOriginal}" target="_blank" style="color: #2980b9; text-decoration: none; margin-right: 12px;">Original 🔗</a>
+                                    <a href="${exibicaoLinkCurto}" target="_blank" style="color: #27ae60; text-decoration: none; font-weight: bold;">Encurtado 🟢</a>
+                                </div>
                             </div>
                             <span class="cliques">${l.cliques || 0} cliques</span>
                         </div>
-                    `).join('');
+                    `}).join('');
                 }
             }
         } catch (error) {

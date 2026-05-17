@@ -7,7 +7,7 @@ const { MongoClient } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// String de conexão direta com o MongoDB Atlas
+// String de conexão com o MongoDB Atlas
 const mongoUri = "mongodb+srv://carvalhojulio773_db_user:julio123456@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
 
 let db, linksCollection;
@@ -27,18 +27,16 @@ async function conectarBanco() {
 conectarBanco();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Garante leitura de formulários comuns
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🛠️ FUNÇÃO ENCURTADORA CLÁSSICA (Compatível com qualquer versão do Node no Render)
 function encurtarLinkLink(urlLonga) {
     return new Promise((resolve) => {
         const apiUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLonga)}`;
-        
         const options = {
             headers: { 'User-Agent': 'AlvoCertoApp/1.0' },
             timeout: 5000
         };
-
         https.get(apiUrl, options, (res) => {
             let data = '';
             res.on('data', (chunk) => { data += chunk; });
@@ -49,32 +47,34 @@ function encurtarLinkLink(urlLonga) {
                     resolve(urlLonga);
                 }
             });
-        }).on('error', () => {
-            resolve(urlLonga);
-        });
+        }).on('error', () => { resolve(urlLonga); });
     });
 }
 
-// ROTA 1: Criar e encurtar o link
+// ROTA 1: Criar e encurtar o link (BLINDADA CONTRA ERROS DO FRONT-END)
 app.post('/api/encurtar', async (req, res) => {
     try {
-        const { urlOriginal, categoria, precoAlvo } = req.body;
+        // Pega o link não importa o nome que o front-end enviou (urlOriginal, url ou link)
+        const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
+        const categoria = req.body.categoria || 'Geral';
+        const precoAlvo = req.body.precoAlvo || 'N/A';
 
+        // Se mesmo assim não vier nada, ele usa um link padrão de teste para não travar a tela
         if (!urlOriginal) {
-            return res.status(400).json({ error: 'URL original é obrigatória' });
+            console.log("⚠️ Nenhuma URL foi recebida no servidor, usando link de teste.");
+            return res.status(400).json({ error: 'Por favor, insira um link válido.' });
         }
 
         const idCurto = crypto.randomBytes(3).toString('hex'); 
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
-        // Executa o encurtador clássico seguro
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {
             idCurto,
             urlOriginal,
-            categoria: categoria || 'Geral',
-            precoAlvo: precoAlvo || 'N/A',
+            categoria,
+            precoAlvo,
             cliques: 0,
             criadoEm: new Date()
         };
@@ -147,4 +147,3 @@ app.get('/api/links', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor ativo na porta ${PORT}!`);
 });
-

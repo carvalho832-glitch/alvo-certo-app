@@ -1,27 +1,26 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const http = require('https'); // Usado para chamar o encurtador gratuito
+const http = require('https'); 
 const { MongoClient } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ⚠️ SUA CHAVE DO BANCO DE DADOS AQUI (Mantenha o link completo)
+// Chave de conexão direta com o MongoDB Atlas
 const mongoUri = "mongodb+srv://carvalhojulio773_db_user:7tIHmw2mEShgLtsI@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
 
 let db, linksCollection;
 
-// Função para conectar ao MongoDB Atlas
 async function conectarBanco() {
     try {
         const client = new MongoClient(mongoUri);
         await client.connect();
         db = client.db('alvo_certo_dados');
         linksCollection = db.collection('links');
-        console.log("✅ Conectado com sucesso ao MongoDB Atlas! Dados protegidos.");
+        console.log("✅ Conectado ao MongoDB Atlas!");
     } catch (error) {
-        console.error("❌ Erro ao conectar no MongoDB:", error);
+        console.error("❌ Erro no MongoDB:", error);
     }
 }
 conectarBanco();
@@ -29,7 +28,7 @@ conectarBanco();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Função auxiliar para chamar o encurtador gratuito is.gd
+// Função para gerar o link curto usando a API do is.gd
 function encurtarLinkLink(urlLonga) {
     return new Promise((resolve) => {
         http.get(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLonga)}`, (res) => {
@@ -39,29 +38,26 @@ function encurtarLinkLink(urlLonga) {
                 if (res.statusCode === 200 && data.trim()) {
                     resolve(data.trim());
                 } else {
-                    resolve(urlLonga); // Se falhar, usa o link do Render temporariamente
+                    resolve(urlLonga);
                 }
             });
         }).on('error', () => resolve(urlLonga));
     });
 }
 
-// ROTA 1: Criar o link rastreado e encurtado
-app.post('/api/encurtar', async (req, { json }) => {
+// ROTA 1: Criar e encurtar o link (Corrigida para o formato padrão do Express)
+app.post('/api/encurtar', async (req, res) => {
     try {
         const { urlOriginal, categoria, precoAlvo } = req.body;
 
         if (!urlOriginal) {
-            return json({ error: 'URL original é obrigatória' });
+            return res.status(400).json({ error: 'URL original é obrigatória' });
         }
 
-        const idCurto = crypto.randomBytes(3).toString('hex'); // Gera um código de 6 caracteres
-        
-        // Link intermediário do Render que faz o rastreamento
+        const idCurto = crypto.randomBytes(3).toString('hex'); 
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
-        // Transforma o link comprido do Render em um link minúsculo tipo bit.ly (is.gd)
-        console.log("Encurtando link de rastreio...");
+        console.log("Encurtando link no is.gd...");
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {
@@ -73,45 +69,50 @@ app.post('/api/encurtar', async (req, { json }) => {
             criadoEm: new Date()
         };
 
-        await linksCollection.insertOne(novoLink);
+        if (linksCollection) {
+            await linksCollection.insertOne(novoLink);
+        }
 
-        json({ linkCurto: linkCurtoFinal, idCurto });
+        res.json({ linkCurto: linkCurtoFinal, idCurto });
     } catch (error) {
-        console.error(error);
-        json({ error: 'Erro interno no servidor' });
+        console.error("Erro na rota /api/encurtar:", error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
     }
 });
 
-// ROTA 2: Redirecionar e contar o clique (Salva direto no MongoDB)
+// ROTA 2: Redirecionar e computar clique
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
         
+        if (!linksCollection) {
+            return res.redirect('/');
+        }
+
         const link = await linksCollection.findOne({ idCurto });
 
         if (link) {
-            // Soma +1 clique direto no banco de dados definitivo
             await linksCollection.updateOne({ idCurto }, { $inc: { cliques: 1 } });
             return res.redirect(link.urlOriginal);
         } else {
-            return res.status(404).send('<h1>Link não encontrado ou expirado.</h1>');
+            return res.status(404).send('<h1>Link não encontrado.</h1>');
         }
     } catch (error) {
-        res.status(500).send('Erro ao processar redirecionamento.');
+        res.status(500).send('Erro ao redirecionar.');
     }
 });
 
-// ROTA 3: Listar o histórico de links direto do Banco de Dados
-app.get('/api/links', async (req, { json }) => {
+// ROTA 3: Buscar histórico
+app.get('/api/links', async (req, res) => {
     try {
-        if (!linksCollection) return json([]);
+        if (!linksCollection) return res.json([]);
         const links = await linksCollection.find().sort({ criadoEm: -1 }).toArray();
-        json(links);
+        res.json(links);
     } catch (error) {
-        json({ error: 'Erro ao buscar links' });
+        res.status(500).json({ error: 'Erro ao buscar links' });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Sistema rodando com sucesso na porta ${PORT}!`);
+    console.log(`🚀 Servidor ativo na porta ${PORT}!`);
 });

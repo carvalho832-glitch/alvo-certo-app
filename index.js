@@ -30,25 +30,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔄 NOVO ENCURTADOR: Trocado para o TinyURL devido à instabilidade do is.gd
+// Motor de encurtamento do TinyURL (Sem erros de sintaxe)
 function encurtarLinkLink(urlLonga) {
     return new Promise((resolve) => {
         const apiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlLonga)}`;
-        
         const options = {
             headers: { 'User-Agent': 'AlvoCertoApp/1.0' },
             timeout: 6000
         };
-
         https.get(apiUrl, options, (res) => {
             let data = '';
             res.on('data', (chunk) => { data += chunk; });
             res.on('end', () => {
-                // Se o TinyURL responder certinho e não contiver erro, usa o link deles
                 if (res.statusCode === 200 && data.trim() && !data.toLowerCase().includes('error')) {
                     resolve(data.trim());
                 } else {
-                    resolve(urlLonga); // Retorna o link padrão se falhar
+                    resolve(urlLonga);
                 }
             });
         }).on('error', () => {
@@ -57,11 +54,11 @@ function encurtarLinkLink(urlLonga) {
     });
 }
 
-// ROTA 1: Criar e encurtar o link
+// ROTA 1: Salva o link com a nova Descrição do Produto
 app.post('/api/encurtar', async (req, res) => {
     try {
         const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
-        const categoria = req.body.categoria || 'Geral';
+        const descricao = req.body.descricao || 'Produto sem nome';
         const precoAlvo = req.body.precoAlvo || 'N/A';
 
         if (!urlOriginal) {
@@ -71,13 +68,12 @@ app.post('/api/encurtar', async (req, res) => {
         const idCurto = crypto.randomBytes(3).toString('hex'); 
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
-        // Chama o encurtador estável do TinyURL
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {
             idCurto,
             urlOriginal,
-            categoria,
+            descricao,
             precoAlvo,
             cliques: 0,
             criadoEm: new Date()
@@ -100,7 +96,7 @@ app.post('/api/encurtar', async (req, res) => {
     }
 });
 
-// ROTA 2: Redirecionar clique
+// ROTA 2: Redirecionar clique e computar acesso
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
@@ -129,7 +125,7 @@ app.get('/clique/:idCurto', async (req, res) => {
     }
 });
 
-// ROTA 3: Histórico unificado
+// ROTA 3: Histórico unificado para a tabela da tela
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];

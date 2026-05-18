@@ -18,7 +18,7 @@ async function conectarBanco() {
         await client.connect();
         db = client.db('alvo_certo_dados');
         linksCollection = db.collection('links');
-        console.log("✅ Conectado ao MongoDB! (Motor Turbo: Via Expressa Render)");
+        console.log("✅ Conectado ao MongoDB! (Motor Turbo + Escudo Anti-Robô 🛡️)");
     } catch (error) {
         console.error("⚠️ Usando banco reserva local:", error.message);
     }
@@ -29,7 +29,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ROTA 1: Salva o link (Via Expressa Render - Sem Encurtadores de Terceiros)
+// ROTA 1: Salva o link 
 app.post('/api/encurtar', async (req, res) => {
     try {
         let urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
@@ -43,10 +43,7 @@ app.post('/api/encurtar', async (req, res) => {
         const precoAlvo = req.body.precoAlvo || 'N/A';
         const nomeGrupo = req.body.nomeGrupo || req.body.grupo || 'Geral';
 
-        // Gera o ID único de 6 letras/números
         const idCurto = crypto.randomBytes(3).toString('hex'); 
-        
-        // A MÁGICA AQUI: O link gerado é o seu próprio domínio do Render!
         const linkCurtoFinal = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
         const novoLink = {
@@ -57,7 +54,7 @@ app.post('/api/encurtar', async (req, res) => {
             precoAlvo,
             nomeGrupo, 
             cliques: 0,
-            historicoCliques: [], // Rastreador de tempo ativo
+            historicoCliques: [], 
             criadoEm: new Date()
         };
 
@@ -71,7 +68,6 @@ app.post('/api/encurtar', async (req, res) => {
             bancoReserva[idCurto] = novoLink;
         }
 
-        // Devolve o link rapidão pra sua tela
         res.json({ linkCurto: linkCurtoFinal, idCurto });
     } catch (error) {
         console.error("Erro na rota de encurtamento:", error);
@@ -79,42 +75,51 @@ app.post('/api/encurtar', async (req, res) => {
     }
 });
 
-// ROTA 2: Redirecionar clique e Rastrear Horário
+// ROTA 2: Redirecionar clique e Rastrear Horário (COM ESCUDO ANTI-ROBÔ 🛡️)
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
         const dataDoClique = new Date(); 
+        
+        // 🕵️ DETETIVE: Lê a identidade de quem clicou
+        const userAgent = req.headers['user-agent'] || '';
+        
+        // Lista negra de robôs: WhatsApp, ChatGPT, Facebook, Telegram, Google, etc.
+        const isBot = /bot|chatgpt|facebookexternalhit|whatsapp|telegram|crawler|spider|slurp|yandex|google/i.test(userAgent);
 
         if (linksCollection) {
             try {
                 const link = await linksCollection.findOne({ idCurto });
                 if (link) {
-                    await linksCollection.updateOne(
-                        { idCurto }, 
-                        { 
-                            $inc: { cliques: 1 },
-                            $push: { historicoCliques: dataDoClique } 
-                        } 
-                    );
-                    // Redireciona pra Shopee na hora, sem telas de aviso!
+                    // SÓ CONTA O CLIQUE SE NÃO FOR UM ROBÔ
+                    if (!isBot) {
+                        await linksCollection.updateOne(
+                            { idCurto }, 
+                            { 
+                                $inc: { cliques: 1 },
+                                $push: { historicoCliques: dataDoClique } 
+                            } 
+                        );
+                    }
                     return res.redirect(link.urlOriginal);
                 }
             } catch (err) { console.error(err.message); }
         }
         
-        // Memória reserva caso o banco pisque
         const linkReserva = bancoReserva[idCurto];
         if (linkReserva) {
-            linkReserva.cliques += 1;
-            if (!linkReserva.historicoCliques) linkReserva.historicoCliques = [];
-            linkReserva.historicoCliques.push(dataDoClique);
+            if (!isBot) {
+                linkReserva.cliques += 1;
+                if (!linkReserva.historicoCliques) linkReserva.historicoCliques = [];
+                linkReserva.historicoCliques.push(dataDoClique);
+            }
             return res.redirect(linkReserva.urlOriginal);
         }
         return res.status(404).send('<h1>Link não encontrado.</h1>');
     } catch (error) { res.status(500).send('Erro ao redirecionar.'); }
 });
 
-// ROTA 3: Puxa o histórico pro seu Dashboard
+// ROTA 3: Dashboard
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];
@@ -127,7 +132,7 @@ app.get('/api/links', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro ao buscar links' }); }
 });
 
-// ROTA 4: Excluir link individual
+// ROTA 4: Excluir link
 app.delete('/api/links/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -142,7 +147,7 @@ app.delete('/api/links/:id', async (req, res) => {
     }
 });
 
-// ROTA 5: Botão Vermelho (Limpar Tudo)
+// ROTA 5: Limpar tudo
 app.delete('/api/links-limpar-tudo', async (req, res) => {
     try {
         if (linksCollection) {
@@ -155,11 +160,9 @@ app.delete('/api/links-limpar-tudo', async (req, res) => {
     }
 });
 
-// ROTA 6: Entrega a tela do Dashboard de Gráficos
+// ROTA 6: Dashboard Page
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Liga o motor!
 app.listen(PORT, () => { console.log(`🚀 Servidor ativo na porta ${PORT}!`); });
-

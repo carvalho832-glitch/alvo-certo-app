@@ -12,22 +12,14 @@
         .topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         h1 { color: #2c3e50; font-size: 22px; }
         .btn-voltar { background: #2980b9; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; }
-        
-        /* Grafico */
         .box-grafico { margin-bottom: 30px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
-        
-        /* Cards de Insights */
         .grid-insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .card-insight { padding: 15px; border-radius: 6px; border-left: 5px solid #27ae60; background: #f8fafc; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-insight h3 { font-size: 14px; color: #4a5568; margin-bottom: 5px; }
         .card-insight p { font-size: 13px; font-weight: bold; color: #1a202c; }
-
-        /* Filtros */
         .filtros { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         .btn-filtro { background: #e2e8f0; color: #4a5568; border: none; padding: 8px 16px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
         .btn-filtro.ativo { background: #27ae60; color: white; }
-
-        /* Tabela */
         .tabela-container { background: #fff; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
         th { background: #f8fafc; padding: 12px; color: #4a5568; border-bottom: 2px solid #edf2f7; }
@@ -49,8 +41,7 @@
     </div>
 
     <h2 style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">💡 Produto Campeão por Grupo</h2>
-    <div class="grid-insights" id="quadroInsights">
-        </div>
+    <div class="grid-insights" id="quadroInsights"></div>
 
     <h2 style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">👥 Detalhamento de Cliques por Grupo</h2>
     <div class="filtros" id="botoesFiltro">
@@ -70,8 +61,7 @@
                     <th>Cliques</th>
                 </tr>
             </thead>
-            <tbody id="corpoTabela">
-                </tbody>
+            <tbody id="corpoTabela"></tbody>
         </table>
     </div>
 </div>
@@ -87,13 +77,18 @@
                 todosOsLinks = await resposta.json();
                 montarGrafico();
                 gerarInsights();
-                filtrarGrupo('Todos');
+                
+                const ativo = document.querySelector('.btn-filtro.ativo');
+                const textoFiltro = ativo ? ativo.innerText : 'Todos';
+                if(textoFiltro.includes('Todos')) filtrarGrupo('Todos');
+                else if(textoFiltro.includes('Zona')) filtrarGrupo('Negociação Zona Norte');
+                else if(textoFiltro.includes('Barganha')) filtrarGrupo('Feira da Barganha Colonial 1');
+                else if(textoFiltro.includes('Desapego')) filtrarGrupo('Desapego até 20,00');
             }
         } catch (error) { console.error("Erro ao carregar métricas:", error); }
     }
 
     function montarGrafico() {
-        // Inicializa contadores para cada grupo real
         let gruposValores = {
             "Negociação Zona Norte": 0,
             "Feira da Barganha Colonial 1": 0,
@@ -111,11 +106,10 @@
         });
 
         const ctx = document.getElementById('graficoGrupos').getContext('2d');
-        
         if (meuGrafico) { meuGrafico.destroy(); }
 
         meuGrafico = new Chart(ctx, {
-            type: 'bar', // Formato de torre/coluna
+            type: 'bar',
             data: {
                 labels: ['Zona Norte 🤝', 'Barganha Colonial ⛺', 'Desapego até 20,00 🏷️', 'Geral 🌐'],
                 datasets: [{
@@ -166,7 +160,6 @@
     }
 
     function filtrarGrupo(grupoSelecionado) {
-        // Atualiza os estilos dos botoes de filtro
         const botoes = document.querySelectorAll('.btn-filtro');
         botoes.forEach(b => {
             if(b.innerText.includes(grupoSelecionado === 'Todos' ? 'Todos' : grupoSelecionado.split(' ')[0])) {
@@ -197,10 +190,8 @@
         }).join('');
     }
 
-    // Atualizador automático padrão de 1 minuto
     setInterval(puxarDados, 60000);
     puxarDados();
 </script>
 </body>
 </html>
-

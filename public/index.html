@@ -18,7 +18,7 @@
         h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 24px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #fff; }
         button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         button:hover { background-color: #219653; }
         .resultado { margin-top: 20px; padding: 15px; background-color: #e8f8f5; border: 1px solid #a3e4d7; border-radius: 4px; display: none; }
@@ -29,7 +29,8 @@
         .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 300px; overflow-y: auto; }
         .item-link { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
         .item-link:last-child { border-bottom: none; }
-        .links-acoes { margin-top: 6px; font-size: 11px; }
+        .tag-grupo { background: #e2e8f0; color: #4a5568; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; }
+        .links-acoes { margin-top: 8px; }
         .cliques { background: #e74c3c; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
@@ -52,6 +53,17 @@
         <div class="form-group">
             <label for="precoAlvo">Preço Opcional (Ex: R$ 99,90):</label>
             <input type="text" id="precoAlvo" placeholder="Deixe em branco se não quiser pôr">
+        </div>
+
+        <div class="form-group">
+            <label for="nomeGrupo">Selecione o Grupo Alvo:</label>
+            <select id="nomeGrupo" required>
+                <option value="" disabled selected>-- Escolha o grupo --</option>
+                <option value="Negociação ZN SJC">Negociação Zona Norte 🤝</option>
+                <option value="Barganha Colonial SJC 1">Feira da Barganha Colonial 1 ⛺</option>
+                <option value="Desapego até R$20">Desapego até 20,00 🏷️</option>
+                <option value="Geral">Outro / Geral 🌐</option>
+            </select>
         </div>
         
         <button type="submit" id="btnGerar">Gerar Link Rastreado</button>
@@ -92,16 +104,17 @@
                 const links = await resposta.json();
                 if (links.length > 0) {
                     listaHistorico.innerHTML = links.map(l => {
-                        // Caso seja um link antigo sem a propriedade linkCurto salva, gera uma base para não quebrar
                         const exibicaoLinkCurto = l.linkCurto || `https://alvo-certo-app.onrender.com/clique/${l.idCurto}`;
+                        const grupoTexto = l.nomeGrupo ? `👥 ${l.nomeGrupo}` : '👥 Geral';
                         
                         return `
                         <div class="item-link">
                             <div style="max-width: 75%;">
-                                <span style="color: #2c3e50; font-weight: bold; display: block; word-wrap: break-word;">${l.descricao || l.categoria || 'Produto'}</span> 
+                                <span style="color: #2c3e50; font-weight: bold; display: block; word-wrap: break-word;">${l.descricao || l.categoria || 'Produto'}</span>
+                                <span class="tag-grupo">${grupoTexto}</span>
                                 <div class="links-acoes">
-                                    <a href="${l.urlOriginal}" target="_blank" style="color: #2980b9; text-decoration: none; margin-right: 12px;">Original 🔗</a>
-                                    <a href="${exibicaoLinkCurto}" target="_blank" style="color: #27ae60; text-decoration: none; font-weight: bold;">Encurtado 🟢</a>
+                                    <a href="${l.urlOriginal}" target="_blank" style="background: #2980b9; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; margin-right: 8px; font-weight: bold; font-size: 11px;">Original 🔗</a>
+                                    <a href="${exibicaoLinkCurto}" target="_blank" style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 11px;">Encurtado 🟢</a>
                                 </div>
                             </div>
                             <span class="cliques">${l.cliques || 0} cliques</span>
@@ -125,12 +138,13 @@
         const urlOriginal = document.getElementById('urlOriginal').value;
         const descricao = document.getElementById('descricao').value;
         const precoAlvo = document.getElementById('precoAlvo').value;
+        const nomeGrupo = document.getElementById('nomeGrupo').value;
 
         try {
             const resposta = await fetch('/api/encurtar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ urlOriginal, descricao, precoAlvo })
+                body: JSON.stringify({ urlOriginal, descricao, precoAlvo, nomeGrupo })
             });
 
             const dados = await resposta.json();

@@ -48,18 +48,19 @@ function encurtarLinkLink(urlLonga) {
                     resolve(urlLonga);
                 }
             });
-        }).on('error', () => {
-            resolve(urlLonga);
-        });
+        }).on('error', () => { resolve(urlLonga); });
     });
 }
 
-// ROTA 1: Salva o link com a Descrição e guarda o Link Curto Gerado
+// ROTA 1: Salva o link e captura o grupo enviado pelo front-end
 app.post('/api/encurtar', async (req, res) => {
     try {
         const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
         const descricao = req.body.descricao || 'Produto sem nome';
         const precoAlvo = req.body.precoAlvo || 'N/A';
+        
+        // Blindagem para pegar o grupo de qualquer forma que a tela envie
+        const nomeGrupo = req.body.nomeGrupo || req.body.grupo || 'Geral';
 
         if (!urlOriginal) {
             return res.status(400).json({ error: 'Por favor, insira um link válido.' });
@@ -70,13 +71,13 @@ app.post('/api/encurtar', async (req, res) => {
 
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
-        // Agora salvamos o linkCurto no banco para listar depois
         const novoLink = {
             idCurto,
             urlOriginal,
             linkCurto: linkCurtoFinal, 
             descricao,
             precoAlvo,
+            nomeGrupo, 
             cliques: 0,
             criadoEm: new Date()
         };
@@ -102,7 +103,6 @@ app.post('/api/encurtar', async (req, res) => {
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
-        
         if (linksCollection) {
             try {
                 const link = await linksCollection.findOne({ idCurto });
@@ -110,42 +110,28 @@ app.get('/clique/:idCurto', async (req, res) => {
                     await linksCollection.updateOne({ idCurto }, { $inc: { cliques: 1 } });
                     return res.redirect(link.urlOriginal);
                 }
-            } catch (err) {
-                console.error("Erro Mongo:", err.message);
-            }
+            } catch (err) { console.error(err.message); }
         }
-
         const linkReserva = bancoReserva[idCurto];
         if (linkReserva) {
             linkReserva.cliques += 1;
             return res.redirect(linkReserva.urlOriginal);
         }
-
         return res.status(404).send('<h1>Link não encontrado.</h1>');
-    } catch (error) {
-        res.status(500).send('Erro ao redirecionar.');
-    }
+    } catch (error) { res.status(500).send('Erro ao redirecionar.'); }
 });
 
-// ROTA 3: Histórico unificado
+// ROTA 3: Histórico unificado para listar na tela
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];
         if (linksCollection) {
             try {
                 listaFinal = await linksCollection.find().sort({ criadoEm: -1 }).toArray();
-            } catch (err) {
-                listaFinal = Object.values(bancoReserva);
-            }
-        } else {
-            listaFinal = Object.values(bancoReserva);
-        }
+            } catch (err) { listaFinal = Object.values(bancoReserva); }
+        } else { listaFinal = Object.values(bancoReserva); }
         res.json(listaFinal);
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao buscar links' });
-    }
+    } catch (error) { res.status(500).json({ error: 'Erro ao buscar links' }); }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor ativo na porta ${PORT}!`);
-});
+app.listen(PORT, () => { console.log(`🚀 Servidor ativo na porta ${PORT}!`); });

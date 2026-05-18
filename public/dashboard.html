@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alvo Certo - Relatórios & Insights</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; color: #333; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h1 { color: #2c3e50; font-size: 22px; }
+        .btn-voltar { background: #2980b9; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+        
+        /* Grafico */
+        .box-grafico { margin-bottom: 30px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
+        
+        /* Cards de Insights */
+        .grid-insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card-insight { padding: 15px; border-radius: 6px; border-left: 5px solid #27ae60; background: #f8fafc; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-insight h3 { font-size: 14px; color: #4a5568; margin-bottom: 5px; }
+        .card-insight p { font-size: 13px; font-weight: bold; color: #1a202c; }
+
+        /* Filtros */
+        .filtros { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .btn-filtro { background: #e2e8f0; color: #4a5568; border: none; padding: 8px 16px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+        .btn-filtro.ativo { background: #27ae60; color: white; }
+
+        /* Tabela */
+        .tabela-container { background: #fff; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th { background: #f8fafc; padding: 12px; color: #4a5568; border-bottom: 2px solid #edf2f7; }
+        td { padding: 12px; border-bottom: 1px solid #edf2f7; color: #2d3748; }
+        tr:last-child td { border-bottom: none; }
+        .badge-cliques { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="topo">
+        <h1>📊 Painel de Insights & Métricas</h1>
+        <a href="/" class="btn-voltar">⬅️ Voltar ao Gerador</a>
+    </div>
+
+    <div class="box-grafico">
+        <canvas id="graficoGrupos" height="120"></canvas>
+    </div>
+
+    <h2 style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">💡 Produto Campeão por Grupo</h2>
+    <div class="grid-insights" id="quadroInsights">
+        </div>
+
+    <h2 style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">👥 Detalhamento de Cliques por Grupo</h2>
+    <div class="filtros" id="botoesFiltro">
+        <button class="btn-filtro ativo" onclick="filtrarGrupo('Todos')">Todos os Dados 🌐</button>
+        <button class="btn-filtro" onclick="filtrarGrupo('Negociação Zona Norte')">Zona Norte 🤝</button>
+        <button class="btn-filtro" onclick="filtrarGrupo('Feira da Barganha Colonial 1')">Barganha Colonial ⛺</button>
+        <button class="btn-filtro" onclick="filtrarGrupo('Desapego até 20,00')">Desapego até 20,00 🏷️</button>
+    </div>
+
+    <div class="tabela-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Produto / Oferta</th>
+                    <th>Grupo</th>
+                    <th>Data/Hora Cadastro</th>
+                    <th>Cliques</th>
+                </tr>
+            </thead>
+            <tbody id="corpoTabela">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let todosOsLinks = [];
+    let meuGrafico = null;
+
+    async function puxarDados() {
+        try {
+            const resposta = await fetch('/api/links');
+            if (resposta.ok) {
+                todosOsLinks = await resposta.json();
+                montarGrafico();
+                gerarInsights();
+                filtrarGrupo('Todos');
+            }
+        } catch (error) { console.error("Erro ao carregar métricas:", error); }
+    }
+
+    function montarGrafico() {
+        // Inicializa contadores para cada grupo real
+        let gruposValores = {
+            "Negociação Zona Norte": 0,
+            "Feira da Barganha Colonial 1": 0,
+            "Desapego até 20,00": 0,
+            "Geral": 0
+        };
+
+        todosOsLinks.forEach(l => {
+            const gp = l.nomeGrupo || 'Geral';
+            if(gruposValores[gp] !== undefined) {
+                gruposValores[gp] += (l.cliques || 0);
+            } else {
+                gruposValores["Geral"] += (l.cliques || 0);
+            }
+        });
+
+        const ctx = document.getElementById('graficoGrupos').getContext('2d');
+        
+        if (meuGrafico) { meuGrafico.destroy(); }
+
+        meuGrafico = new Chart(ctx, {
+            type: 'bar', // Formato de torre/coluna
+            data: {
+                labels: ['Zona Norte 🤝', 'Barganha Colonial ⛺', 'Desapego até 20,00 🏷️', 'Geral 🌐'],
+                datasets: [{
+                    label: 'Total de Cliques por Grupo',
+                    data: [
+                        gruposValores["Negociação Zona Norte"],
+                        gruposValores["Feira da Barganha Colonial 1"],
+                        gruposValores["Desapego até 20,00"],
+                        gruposValores["Geral"]
+                    ],
+                    backgroundColor: ['#3498db', '#9b59b6', '#e67e22', '#95a5a6'],
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function gerarInsights() {
+        const mapeamento = {
+            "Negociação Zona Norte": { nome: "Zona Norte", campeao: "Nenhum", max: 0 },
+            "Feira da Barganha Colonial 1": { nome: "Barganha Colonial", campeao: "Nenhum", max: 0 },
+            "Desapego até 20,00": { nome: "Desapego até 20,00", campeao: "Nenhum", max: 0 }
+        };
+
+        todosOsLinks.forEach(l => {
+            const gp = l.nomeGrupo;
+            if(mapeamento[gp]) {
+                if((l.cliques || 0) > mapeamento[gp].max && l.cliques > 0) {
+                    mapeamento[gp].max = l.cliques;
+                    mapeamento[gp].campeao = l.descricao;
+                }
+            }
+        });
+
+        const container = document.getElementById('quadroInsights');
+        container.innerHTML = Object.values(mapeamento).map(m => `
+            <div class="card-insight">
+                <h3>${m.nome}</h3>
+                <p>${m.campeao !== "Nenhum" ? m.campeao : 'Sem cliques ainda'}</p>
+                <span style="font-size:11px; color:#7f8c8d;">${m.max} cliques</span>
+            </div>
+        `).join('');
+    }
+
+    function filtrarGrupo(grupoSelecionado) {
+        // Atualiza os estilos dos botoes de filtro
+        const botoes = document.querySelectorAll('.btn-filtro');
+        botoes.forEach(b => {
+            if(b.innerText.includes(grupoSelecionado === 'Todos' ? 'Todos' : grupoSelecionado.split(' ')[0])) {
+                b.classList.add('ativo');
+            } else { b.classList.remove('ativo'); }
+        });
+
+        const tabela = document.getElementById('corpoTabela');
+        const linksFiltrados = grupoSelecionado === 'Todos' 
+            ? todosOsLinks 
+            : todosOsLinks.filter(l => l.nomeGrupo === grupoSelecionado);
+
+        if(linksFiltrados.length === 0) {
+            tabela.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#7f8c8d;">Nenhum dado encontrado para este grupo.</td></tr>`;
+            return;
+        }
+
+        tabela.innerHTML = linksFiltrados.map(l => {
+            const dataFormatada = l.criadoEm ? new Date(l.criadoEm).toLocaleString('pt-BR') : 'Não registrada';
+            return `
+                <tr>
+                    <td style="font-weight:bold; color:#2c3e50;">${l.descricao}</td>
+                    <td><span style="font-size:11px; color:#7f8c8d;">👥 ${l.nomeGrupo || 'Geral'}</span></td>
+                    <td>${dataFormatada}</td>
+                    <td><span class="badge-cliques">${l.cliques || 0}</span></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Atualizador automático padrão de 1 minuto
+    setInterval(puxarDados, 60000);
+    puxarDados();
+</script>
+</body>
+</html>
+

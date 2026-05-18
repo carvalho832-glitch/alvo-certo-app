@@ -7,7 +7,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// String de conexão FINAL e CORRIGIDA com o MongoDB Atlas
+// String de conexão conectada e validada
 const mongoUri = "mongodb+srv://carvalhojulio773_db_user:julio123456@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
 
 let db, linksCollection;
@@ -19,7 +19,7 @@ async function conectarBanco() {
         await client.connect();
         db = client.db('alvo_certo_dados');
         linksCollection = db.collection('links');
-        console.log("✅ Conectado ao MongoDB Atlas!");
+        console.log("✅ Conectado ao MongoDB Atlas com Rastreador de Tempo!");
     } catch (error) {
         console.error("⚠️ Usando banco reserva local:", error.message);
     }
@@ -52,7 +52,7 @@ function encurtarLinkLink(urlLonga) {
     });
 }
 
-// ROTA 1: Salva o link (Liberado para Shopee, Amazon, Mercado Livre, etc)
+// ROTA 1: Salva o link 
 app.post('/api/encurtar', async (req, res) => {
     try {
         let urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
@@ -79,6 +79,7 @@ app.post('/api/encurtar', async (req, res) => {
             precoAlvo,
             nomeGrupo, 
             cliques: 0,
+            historicoCliques: [], // ⌚ AQUI COMEÇA O RASTREAMENTO DE TEMPO ZERADO
             criadoEm: new Date()
         };
 
@@ -99,29 +100,41 @@ app.post('/api/encurtar', async (req, res) => {
     }
 });
 
-// ROTA 2: Redirecionar clique e somar estatísticas
+// ROTA 2: Redirecionar clique e ANOTAR A HORA EXATA ⌚
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
+        const dataDoClique = new Date(); // Captura o segundo exato que o cliente clicou
+
         if (linksCollection) {
             try {
                 const link = await linksCollection.findOne({ idCurto });
                 if (link) {
-                    await linksCollection.updateOne({ idCurto }, { $inc: { cliques: 1 } });
+                    await linksCollection.updateOne(
+                        { idCurto }, 
+                        { 
+                            $inc: { cliques: 1 },
+                            $push: { historicoCliques: dataDoClique } // Salva o relógio no cofre
+                        } 
+                    );
                     return res.redirect(link.urlOriginal);
                 }
             } catch (err) { console.error(err.message); }
         }
+        
+        // Caso o banco falhe, anota na memória reserva
         const linkReserva = bancoReserva[idCurto];
         if (linkReserva) {
             linkReserva.cliques += 1;
+            if (!linkReserva.historicoCliques) linkReserva.historicoCliques = [];
+            linkReserva.historicoCliques.push(dataDoClique);
             return res.redirect(linkReserva.urlOriginal);
         }
         return res.status(404).send('<h1>Link não encontrado.</h1>');
     } catch (error) { res.status(500).send('Erro ao redirecionar.'); }
 });
 
-// ROTA 3: Histórico unificado para listar na tela e nos gráficos
+// ROTA 3: Histórico unificado 
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];
@@ -134,7 +147,7 @@ app.get('/api/links', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro ao buscar links' }); }
 });
 
-// ROTA 4: Excluir um link individual da lista
+// ROTA 4: Excluir link
 app.delete('/api/links/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -149,7 +162,7 @@ app.delete('/api/links/:id', async (req, res) => {
     }
 });
 
-// ROTA 5: Apagar absolutamente todos os links (Limpeza Total)
+// ROTA 5: Apagar tudo
 app.delete('/api/links-limpar-tudo', async (req, res) => {
     try {
         if (linksCollection) {
@@ -162,7 +175,7 @@ app.delete('/api/links-limpar-tudo', async (req, res) => {
     }
 });
 
-// ROTA 6: Direciona o navegador para a nova página de relatórios gráficos
+// ROTA 6: Dashboard
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });

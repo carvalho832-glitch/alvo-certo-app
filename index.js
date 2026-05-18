@@ -58,8 +58,6 @@ app.post('/api/encurtar', async (req, res) => {
         const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
         const descricao = req.body.descricao || 'Produto sem nome';
         const precoAlvo = req.body.precoAlvo || 'N/A';
-        
-        // Blindagem para pegar o grupo de qualquer forma que a tela envie
         const nomeGrupo = req.body.nomeGrupo || req.body.grupo || 'Geral';
 
         if (!urlOriginal) {

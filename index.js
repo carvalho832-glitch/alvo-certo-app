@@ -52,21 +52,25 @@ function encurtarLinkLink(urlLonga) {
     });
 }
 
-// ROTA 1: Salva o link e captura o grupo enviado pelo front-end
+// ROTA 1: Salva o link (Liberado para Shopee, Amazon, Mercado Livre, etc)
 app.post('/api/encurtar', async (req, res) => {
     try {
-        const urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
-        const descricao = req.body.descricao || 'Produto sem nome';
-        const precoAlvo = req.body.precoAlvo || 'N/A';
-        const nomeGrupo = req.body.nomeGrupo || req.body.grupo || 'Geral';
-
+        // Captura o link de forma totalmente aberta e limpa espaços vazios
+        let urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
+        
         if (!urlOriginal) {
             return res.status(400).json({ error: 'Por favor, insira um link válido.' });
         }
 
+        urlOriginal = urlOriginal.trim();
+        const descricao = req.body.descricao || 'Produto sem nome';
+        const precoAlvo = req.body.precoAlvo || 'N/A';
+        const nomeGrupo = req.body.nomeGrupo || req.body.grupo || 'Geral';
+
         const idCurto = crypto.randomBytes(3).toString('hex'); 
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
+        // Faz a chamada ao TinyURL
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {

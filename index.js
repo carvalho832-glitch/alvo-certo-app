@@ -7,8 +7,8 @@ const { MongoClient, ObjectId } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// String de conexão CORRIGIDA com o MongoDB Atlas
-const mongoUri = "mongodb+srv://julio773_db_user:julio123456@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
+// String de conexão FINAL e CORRIGIDA com o MongoDB Atlas
+const mongoUri = "mongodb+srv://carvalhojulio773_db_user:julio123456@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
 
 let db, linksCollection;
 let bancoReserva = {};

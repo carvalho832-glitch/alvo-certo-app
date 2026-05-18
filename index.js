@@ -7,8 +7,8 @@ const { MongoClient, ObjectId } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// String de conexão com o MongoDB Atlas
-const mongoUri = "mongodb+srv://carvalhojulio773_db_user:julio123456@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
+// String de conexão CORRIGIDA com o MongoDB Atlas
+const mongoUri = "mongodb+srv://julio773_db_user:julio123456@cluster0.3b2msar.mongodb.net/?appName=Cluster0";
 
 let db, linksCollection;
 let bancoReserva = {};
@@ -55,7 +55,6 @@ function encurtarLinkLink(urlLonga) {
 // ROTA 1: Salva o link (Liberado para Shopee, Amazon, Mercado Livre, etc)
 app.post('/api/encurtar', async (req, res) => {
     try {
-        // Captura o link de forma totalmente aberta e limpa espaços vazios
         let urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
         
         if (!urlOriginal) {
@@ -70,7 +69,6 @@ app.post('/api/encurtar', async (req, res) => {
         const idCurto = crypto.randomBytes(3).toString('hex'); 
         const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
-        // Faz a chamada ao TinyURL
         const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
 
         const novoLink = {

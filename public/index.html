@@ -59,9 +59,9 @@
             <label for="nomeGrupo">Selecione o Grupo Alvo:</label>
             <select id="nomeGrupo" required>
                 <option value="" disabled selected>-- Escolha o grupo --</option>
-                <option value="Negociação ZN SJC">Negociação Zona Norte 🤝</option>
-                <option value="Barganha Colonial SJC 1">Feira da Barganha Colonial 1 ⛺</option>
-                <option value="Desapego até R$20">Desapego até 20,00 🏷️</option>
+                <option value="Negociação Zona Norte">Negociação Zona Norte 🤝</option>
+                <option value="Feira da Barganha Colonial 1">Feira da Barganha Colonial 1 ⛺</option>
+                <option value="Desapego até 20,00">Desapego até 20,00 🏷️</option>
                 <option value="Geral">Outro / Geral 🌐</option>
             </select>
         </div>
@@ -105,7 +105,9 @@
                 if (links.length > 0) {
                     listaHistorico.innerHTML = links.map(l => {
                         const exibicaoLinkCurto = l.linkCurto || `https://alvo-certo-app.onrender.com/clique/${l.idCurto}`;
-                        const grupoTexto = l.nomeGrupo ? `👥 ${l.nomeGrupo}` : '👥 Geral';
+                        
+                        // CORREÇÃO AQUI: Se existir qualquer texto salvo em nomeGrupo, mostra ele. Senão, mostra Geral.
+                        const grupoTexto = (l.nomeGrupo && l.nomeGrupo.trim() !== "") ? `👥 ${l.nomeGrupo}` : '👥 Geral';
                         
                         return `
                         <div class="item-link">
@@ -138,7 +140,8 @@
         const urlOriginal = document.getElementById('urlOriginal').value;
         const descricao = document.getElementById('descricao').value;
         const precoAlvo = document.getElementById('precoAlvo').value;
-        const nomeGrupo = document.getElementById('nomeGrupo').value;
+        const selectGrupo = document.getElementById('nomeGrupo');
+        const nomeGrupo = selectGrupo.options[selectGrupo.selectedIndex].value; // Captura o valor exato selecionado
 
         try {
             const resposta = await fetch('/api/encurtar', {

@@ -15,7 +15,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f7f6; color: #333; padding: 20px; }
         .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 24px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
         input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #fff; }
@@ -25,19 +24,27 @@
         .resultado p { color: #117a65; font-weight: bold; }
         .resultado input { margin-top: 10px; text-align: center; background: #fff; font-weight: bold; color: #27ae60; }
         .historico { margin-top: 30px; }
-        .historico h2 { font-size: 18px; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 10px; }
-        .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 300px; overflow-y: auto; }
+        .cabecalho-historico { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; margin-bottom: 10px; }
+        .historico h2 { font-size: 18px; }
+        .btn-limpar-tudo { background: #e74c3c; color: white; border: none; padding: 4px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .lista-links { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-height: 400px; overflow-y: auto; }
         .item-link { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
         .item-link:last-child { border-bottom: none; }
         .tag-grupo { background: #e2e8f0; color: #4a5568; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 4px; display: inline-block; }
         .links-acoes { margin-top: 8px; }
+        .lado-direito { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         .cliques { background: #e74c3c; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .btn-deletar { background: none; border: none; color: #95a5a6; cursor: pointer; font-size: 15px; padding: 2px; transition: color 0.2s; }
+        .btn-deletar:hover { color: #e74c3c; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🚀 Gerador de Ofertas</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin-bottom: 0; font-size: 22px; color: #2c3e50;">🚀 Gerador de Ofertas</h1>
+        <a href="/dashboard" style="background: #2980b9; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">📊 Gráficos</a>
+    </div>
     
     <form id="formGerador">
         <div class="form-group">
@@ -75,7 +82,10 @@
     </div>
 
     <div class="historico">
-        <h2>📊 Cliques em Tempo Real</h2>
+        <div class="cabecalho-historico">
+            <h2>📊 Cliques em Tempo Real</h2>
+            <button class="btn-limpar-tudo" onclick="limparTudo()">Limpar Tudo 🔄</button>
+        </div>
         <div class="lista-links" id="listaHistorico">
             <p style="text-align: center; color: #7f8c8d;">Nenhuma oferta registrada ainda.</p>
         </div>
@@ -91,9 +101,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log('🚀 Aplicativo pronto!'))
-                .catch(err => console.error(err));
+            navigator.serviceWorker.register('/sw.js').catch(err => console.error(err));
         });
     }
 
@@ -105,43 +113,62 @@
                 if (links.length > 0) {
                     listaHistorico.innerHTML = links.map(l => {
                         const exibicaoLinkCurto = l.linkCurto || `https://alvo-certo-app.onrender.com/clique/${l.idCurto}`;
-                        
-                        // CORREÇÃO AQUI: Se existir qualquer texto salvo em nomeGrupo, mostra ele. Senão, mostra Geral.
-                        const grupoTexto = (l.nomeGrupo && l.nomeGrupo.trim() !== "") ? `👥 ${l.nomeGrupo}` : '👥 Geral';
+                        const grupoTexto = l.nomeGrupo ? `👥 ${l.nomeGrupo}` : '👥 Geral';
+                        const idIdentificador = l._id || l.idCurto;
                         
                         return `
                         <div class="item-link">
                             <div style="max-width: 75%;">
-                                <span style="color: #2c3e50; font-weight: bold; display: block; word-wrap: break-word;">${l.descricao || l.categoria || 'Produto'}</span>
+                                <span style="color: #2c3e50; font-weight: bold; display: block; word-wrap: break-word;">${l.descricao}</span>
                                 <span class="tag-grupo">${grupoTexto}</span>
                                 <div class="links-acoes">
                                     <a href="${l.urlOriginal}" target="_blank" style="background: #2980b9; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; margin-right: 8px; font-weight: bold; font-size: 11px;">Original 🔗</a>
                                     <a href="${exibicaoLinkCurto}" target="_blank" style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 11px;">Encurtado 🟢</a>
                                 </div>
                             </div>
-                            <span class="cliques">${l.cliques || 0} cliques</span>
+                            <div class="lado-direito">
+                                <span class="cliques">${l.cliques || 0} cliques</span>
+                                <button class="btn-deletar" onclick="deletarLink('${idIdentificador}')" title="Excluir este link">🗑️</button>
+                            </div>
                         </div>
                     `}).join('');
+                } else {
+                    listaHistorico.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Nenhuma oferta registrada ainda.</p>';
                 }
             }
-        } catch (error) {
-            console.error("Erro ao carregar histórico:", error);
+        } catch (error) { console.error(error); }
+    }
+
+    setInterval(carregarHistorico, 60000); 
+    carregarHistorico();
+
+    async function deletarLink(id) {
+        if(confirm("Tem certeza que deseja apagar essa oferta da lista?")) {
+            try {
+                const res = await fetch(`/api/links/${id}`, { method: 'DELETE' });
+                if(res.ok) { carregarHistorico(); }
+            } catch (err) { alert("Erro ao deletar."); }
         }
     }
 
-    carregarHistorico();
+    async function limparTudo() {
+        if(confirm("ATENÇÃO: Deseja apagar absolutamente TODOS os links e cliques do painel?")) {
+            try {
+                const res = await fetch('/api/links-limpar-tudo', { method: 'DELETE' });
+                if(res.ok) { carregarHistorico(); }
+            } catch (err) { alert("Erro ao limpar histórico."); }
+        }
+    }
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         btnGerar.innerText = "Gerando Link...";
         btnGerar.disabled = true;
 
         const urlOriginal = document.getElementById('urlOriginal').value;
         const descricao = document.getElementById('descricao').value;
         const precoAlvo = document.getElementById('precoAlvo').value;
-        const selectGrupo = document.getElementById('nomeGrupo');
-        const nomeGrupo = selectGrupo.options[selectGrupo.selectedIndex].value; // Captura o valor exato selecionado
+        const nomeGrupo = document.getElementById('nomeGrupo').value;
 
         try {
             const resposta = await fetch('/api/encurtar', {
@@ -157,13 +184,10 @@
                 blocoResultado.style.display = 'block';
                 form.reset();
                 carregarHistorico();
-            } else {
-                alert(dados.error || "Erro interno ao processar o link.");
-            }
+            } else { alert(dados.error || "Erro ao processar o link."); }
         } catch (error) {
-            console.error(error);
             alert("Erro ao gerar o link. Verifique a conexão do servidor.");
-        } finally {
+        } vanished {
             btnGerar.innerText = "Gerar Link Rastreado";
             btnGerar.disabled = false;
         }

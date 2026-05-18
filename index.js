@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const https = require('https'); 
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -99,7 +99,7 @@ app.post('/api/encurtar', async (req, res) => {
     }
 });
 
-// ROTA 2: Redirecionar clique
+// ROTA 2: Redirecionar clique e somar estatísticas
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
@@ -121,7 +121,7 @@ app.get('/clique/:idCurto', async (req, res) => {
     } catch (error) { res.status(500).send('Erro ao redirecionar.'); }
 });
 
-// ROTA 3: Histórico unificado para listar na tela
+// ROTA 3: Histórico unificado para listar na tela e nos gráficos
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];
@@ -132,6 +132,39 @@ app.get('/api/links', async (req, res) => {
         } else { listaFinal = Object.values(bancoReserva); }
         res.json(listaFinal);
     } catch (error) { res.status(500).json({ error: 'Erro ao buscar links' }); }
+});
+
+// ROTA 4: Excluir um link individual da lista
+app.delete('/api/links/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (linksCollection) {
+            await linksCollection.deleteOne({ _id: new ObjectId(id) });
+        } else {
+            delete bancoReserva[id];
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao deletar o link' });
+    }
+});
+
+// ROTA 5: Apagar absolutamente todos os links (Limpeza Total)
+app.delete('/api/links-limpar-tudo', async (req, res) => {
+    try {
+        if (linksCollection) {
+            await linksCollection.deleteMany({});
+        }
+        bancoReserva = {};
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao limpar o histórico' });
+    }
+});
+
+// ROTA 6: Direciona o navegador para a nova página de relatórios gráficos
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 app.listen(PORT, () => { console.log(`🚀 Servidor ativo na porta ${PORT}!`); });

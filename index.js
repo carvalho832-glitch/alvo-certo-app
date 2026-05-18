@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const https = require('https'); 
 const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
@@ -19,7 +18,7 @@ async function conectarBanco() {
         await client.connect();
         db = client.db('alvo_certo_dados');
         linksCollection = db.collection('links');
-        console.log("✅ Conectado ao MongoDB Atlas com Rastreador de Tempo!");
+        console.log("✅ Conectado ao MongoDB! (Motor Turbo: Via Expressa Render)");
     } catch (error) {
         console.error("⚠️ Usando banco reserva local:", error.message);
     }
@@ -30,29 +29,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Motor estável do TinyURL
-function encurtarLinkLink(urlLonga) {
-    return new Promise((resolve) => {
-        const apiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlLonga)}`;
-        const options = {
-            headers: { 'User-Agent': 'AlvoCertoApp/1.0' },
-            timeout: 6000
-        };
-        https.get(apiUrl, options, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-                if (res.statusCode === 200 && data.trim() && !data.toLowerCase().includes('error')) {
-                    resolve(data.trim());
-                } else {
-                    resolve(urlLonga);
-                }
-            });
-        }).on('error', () => { resolve(urlLonga); });
-    });
-}
-
-// ROTA 1: Salva o link 
+// ROTA 1: Salva o link (Via Expressa Render - Sem Encurtadores de Terceiros)
 app.post('/api/encurtar', async (req, res) => {
     try {
         let urlOriginal = req.body.urlOriginal || req.body.url || req.body.link;
@@ -66,10 +43,11 @@ app.post('/api/encurtar', async (req, res) => {
         const precoAlvo = req.body.precoAlvo || 'N/A';
         const nomeGrupo = req.body.nomeGrupo || req.body.grupo || 'Geral';
 
+        // Gera o ID único de 6 letras/números
         const idCurto = crypto.randomBytes(3).toString('hex'); 
-        const linkRenderRastreio = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
-
-        const linkCurtoFinal = await encurtarLinkLink(linkRenderRastreio);
+        
+        // A MÁGICA AQUI: O link gerado é o seu próprio domínio do Render!
+        const linkCurtoFinal = `https://alvo-certo-app.onrender.com/clique/${idCurto}`;
 
         const novoLink = {
             idCurto,
@@ -79,7 +57,7 @@ app.post('/api/encurtar', async (req, res) => {
             precoAlvo,
             nomeGrupo, 
             cliques: 0,
-            historicoCliques: [], // ⌚ AQUI COMEÇA O RASTREAMENTO DE TEMPO ZERADO
+            historicoCliques: [], // Rastreador de tempo ativo
             criadoEm: new Date()
         };
 
@@ -93,6 +71,7 @@ app.post('/api/encurtar', async (req, res) => {
             bancoReserva[idCurto] = novoLink;
         }
 
+        // Devolve o link rapidão pra sua tela
         res.json({ linkCurto: linkCurtoFinal, idCurto });
     } catch (error) {
         console.error("Erro na rota de encurtamento:", error);
@@ -100,11 +79,11 @@ app.post('/api/encurtar', async (req, res) => {
     }
 });
 
-// ROTA 2: Redirecionar clique e ANOTAR A HORA EXATA ⌚
+// ROTA 2: Redirecionar clique e Rastrear Horário
 app.get('/clique/:idCurto', async (req, res) => {
     try {
         const { idCurto } = req.params;
-        const dataDoClique = new Date(); // Captura o segundo exato que o cliente clicou
+        const dataDoClique = new Date(); 
 
         if (linksCollection) {
             try {
@@ -114,15 +93,16 @@ app.get('/clique/:idCurto', async (req, res) => {
                         { idCurto }, 
                         { 
                             $inc: { cliques: 1 },
-                            $push: { historicoCliques: dataDoClique } // Salva o relógio no cofre
+                            $push: { historicoCliques: dataDoClique } 
                         } 
                     );
+                    // Redireciona pra Shopee na hora, sem telas de aviso!
                     return res.redirect(link.urlOriginal);
                 }
             } catch (err) { console.error(err.message); }
         }
         
-        // Caso o banco falhe, anota na memória reserva
+        // Memória reserva caso o banco pisque
         const linkReserva = bancoReserva[idCurto];
         if (linkReserva) {
             linkReserva.cliques += 1;
@@ -134,7 +114,7 @@ app.get('/clique/:idCurto', async (req, res) => {
     } catch (error) { res.status(500).send('Erro ao redirecionar.'); }
 });
 
-// ROTA 3: Histórico unificado 
+// ROTA 3: Puxa o histórico pro seu Dashboard
 app.get('/api/links', async (req, res) => {
     try {
         let listaFinal = [];
@@ -147,7 +127,7 @@ app.get('/api/links', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro ao buscar links' }); }
 });
 
-// ROTA 4: Excluir link
+// ROTA 4: Excluir link individual
 app.delete('/api/links/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -162,7 +142,7 @@ app.delete('/api/links/:id', async (req, res) => {
     }
 });
 
-// ROTA 5: Apagar tudo
+// ROTA 5: Botão Vermelho (Limpar Tudo)
 app.delete('/api/links-limpar-tudo', async (req, res) => {
     try {
         if (linksCollection) {
@@ -175,9 +155,11 @@ app.delete('/api/links-limpar-tudo', async (req, res) => {
     }
 });
 
-// ROTA 6: Dashboard
+// ROTA 6: Entrega a tela do Dashboard de Gráficos
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+// Liga o motor!
 app.listen(PORT, () => { console.log(`🚀 Servidor ativo na porta ${PORT}!`); });
+
